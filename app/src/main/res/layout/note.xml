@@ -6,19 +6,13 @@
     android:orientation="vertical">
 
     <EditText
-        android:id="@+id/search_note"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:gravity="start|top"
-        android:hint="Search...."/>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/list"
+        android:id="@+id/note_content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:gravity="top"
+        android:hint="Type anything!"
         android:layout_weight="1"
-        android:gravity="top"/>
+        android:inputType="textMultiLine" />
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -27,11 +21,18 @@
         android:layout_gravity="center">
 
         <Button
-            android:id="@+id/new_note"
-            android:layout_width="0dp"
+            android:id="@+id/save_note"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="New" />
+            android:layout_marginRight="20dp"
+            android:text="Save" />
 
+        <Button
+            android:id="@+id/cancel_note"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel"/>
     </LinearLayout>
 </LinearLayout>

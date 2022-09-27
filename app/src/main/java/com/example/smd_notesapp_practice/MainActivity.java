@@ -1,78 +1,130 @@
 package com.example.smd_notesapp_practice;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Filterable;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.Objects;
 
-public class MainActivity extends AppCompatActivity {
-		private ArrayList<Note> notes;
-		private Note currentNote;
+public class MainActivity extends AppCompatActivity implements NoteAdapter.NoteItemClickListener {
+		private ArrayList<Note> notes = new ArrayList<Note>();
+		private Hashtable <String, Note> hashtable = new Hashtable<String, Note>();
+		private ActivityResultLauncher<Intent> notesLauncher;
+		private RecyclerView.Adapter adapter;
+		private EditText search;
+		Filterable filterable;
 
 		@Override
 		protected void onCreate(Bundle savedInstanceState) {
 				super.onCreate(savedInstanceState);
 				setContentView(R.layout.activity_main);
 
-				notes = new ArrayList<Note>();
+				NoteViewModel noteViewModel = new ViewModelProvider(this).get(NoteViewModel.class);
+				notes = noteViewModel.getNotes(savedInstanceState, "data");
 
-				Button save_btn = (Button) findViewById(R.id.save_note);
-				Button new_btn = (Button) findViewById(R.id.new_note);
-				Button list_btn = (Button) findViewById(R.id.list_notes);
-				EditText temp_content = (EditText) findViewById(R.id.note_content);
-				String temp_content_string = temp_content.toString();
-
-				save_btn.setOnClickListener(new View.OnClickListener() {
+				search = (EditText) findViewById(R.id.search_note);
+				search.addTextChangedListener(new TextWatcher() {
 						@Override
-						public void onClick(View view) {
-								saveNote(temp_content_string);
+						public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+						}
+
+						@Override
+						public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+								filterable.getFilter().filter(search.getText().toString());
+						}
+
+						@Override
+						public void afterTextChanged(Editable editable) {
+
 						}
 				});
+
+				RecyclerView recyclerView = (RecyclerView) findViewById(R.id.list);
+				recyclerView.setHasFixedSize(true);
+
+				RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+				recyclerView.setLayoutManager(layoutManager);
+
+				NoteAdapter noteAdapter = new NoteAdapter(notes, this);
+
+				filterable = noteAdapter;
+				adapter = noteAdapter;
+				recyclerView.addItemDecoration(new DividerItemDecoration(this, LinearLayoutManager.VERTICAL));
+				recyclerView.setAdapter(adapter);
+
+				Button new_btn = (Button) findViewById(R.id.new_note);
 
 				new_btn.setOnClickListener(new View.OnClickListener() {
 						@Override
 						public void onClick(View view) {
-							newNote(temp_content_string, temp_content);
+							newNote();
 						}
 				});
 
-				list_btn.setOnClickListener(new View.OnClickListener() {
+				notesLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
 						@Override
-						public void onClick(View view) {
-								listNotes();
+						public void onActivityResult(ActivityResult result) {
+								if (result.getResultCode() == RESULT_OK){
+										Intent intent = result.getData();
+										String content = intent.getStringExtra("content");
+										String id = intent.getStringExtra("id");
+//										System.out.println("Content: " + content + ", id: " + id);
+
+										if (id.equals("")){
+												notes.add(new Note(content));
+										}
+										else {
+												Note note = hashtable.get(id);
+												if (note != null){
+														note.setContent(content);
+												}
+										}
+//										System.out.println("Number of notes: " + notes.size());
+										adapter.notifyDataSetChanged();
+								}
 						}
 				});
 		}
 
-		public void saveNote(String temp_content_string){
-				if (currentNote == null){
-						currentNote = new Note(temp_content_string);
-						notes.add(currentNote);
-				}
-				else {
-						currentNote.setContent(temp_content_string);
-				}
-
-				Toast successToast = Toast.makeText(this, "Note saved successfully!",
-								Toast.LENGTH_LONG);
-				successToast.show();
+		public void newNote(){
+				Intent intent = new Intent(this, NoteActivity.class);
+				intent.putExtra("id", "");
+				notesLauncher.launch(intent);
 		}
 
-		public void newNote(String temp_content_string, EditText temp_content){
-				saveNote(temp_content_string);
-				temp_content.setText("");
-				currentNote = null;
+		@Override
+		protected void onSaveInstanceState(@NonNull Bundle outState) {
+				super.onSaveInstanceState(outState);
+				outState.putSerializable("data", notes);
 		}
 
-		public void listNotes(){
-				int size = notes.size();
-				Toast notes_size = Toast.makeText(this, "There are " + size + " notes", Toast.LENGTH_LONG);
-				notes_size.show();
+		@Override
+		public void onClick(Note note) {
+				Intent intent = new Intent(this, NoteActivity.class);
+				intent.putExtra("id", note.getId());
+				intent.putExtra("content", note.getContent());
+				hashtable.put(note.getId(), note);
+				notesLauncher.launch(intent);
 		}
-
 }
